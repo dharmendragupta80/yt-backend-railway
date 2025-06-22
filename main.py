@@ -22,6 +22,6 @@ def get_video():
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
-            return jsonify(info.get('url'))
+return jsonify({'url': info.get('url')})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
