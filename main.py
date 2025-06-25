@@ -47,3 +47,28 @@ def get_video():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/getformats', methods=['GET'])
+def get_formats():
+    url = request.args.get('url')
+    if not url:
+        return jsonify({'error': 'Missing URL'}), 400
+
+    ydl_opts = {
+        'quiet': True,
+        'format': 'bestvideo+bestaudio/best',
+        'noplaylist': True
+    }
+
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            if 'entries' in info:
+                info = info['entries'][0]
+            formats = info.get('formats', [])
+            return jsonify(formats)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+
