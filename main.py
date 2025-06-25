@@ -15,13 +15,35 @@ def get_video():
 
     ydl_opts = {
         'quiet': True,
-        'format': 'best[ext=mp4]/best',
+        'skip_download': True,
         'noplaylist': True
     }
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
-return jsonify({'url': info.get('url')})
+            formats = info.get('formats', [])
+            result_formats = []
+
+            for f in formats:
+                format_id = f.get('format_id')
+                resolution = f.get('format_note') or f.get('height') or 'audio'
+                ext = f.get('ext')
+                url = f.get('url')
+                if not url:
+                    continue
+
+                filesize = f.get('filesize') or f.get('filesize_approx')
+                size_mb = f"{round(filesize / (1024 * 1024), 2)} MB" if filesize else "Unknown size"
+                label = f"{resolution} · {ext.upper()} · {size_mb}"
+
+                result_formats.append({
+                    'format_id': format_id,
+                    'label': label,
+                    'url': url
+                })
+
+            return jsonify(result_formats)
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
