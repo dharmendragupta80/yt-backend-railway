@@ -6,6 +6,7 @@ app = Flask(__name__)
 @app.route('/')
 def home():
     return 'YouTube Direct Link API Running!'
+
 @app.route('/getvideo', methods=['GET'])
 def get_video():
     url = request.args.get('url')
@@ -15,7 +16,10 @@ def get_video():
     ydl_opts = {
         'quiet': True,
         'format': 'best[ext=mp4]/best',
-        'noplaylist': True
+        'noplaylist': True,
+        'http_chunk_size': 1048576,  # 1MB
+        'socket_timeout': 10,
+        'retries': 2
     }
 
     try:
@@ -23,10 +27,11 @@ def get_video():
             info = ydl.extract_info(url, download=False)
             if 'entries' in info:
                 info = info['entries'][0]
-            return jsonify({ 'url': info.get('url') })  # ✅ returns object
+            print("Video URL:", info.get('url'))  # Railway logs
+            return jsonify({'url': info.get('url')})
     except Exception as e:
-        return jsonify({ 'error': str(e) }), 500
-
+        print("Error:", e)
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/getformats', methods=['GET'])
 def get_formats():
@@ -37,7 +42,10 @@ def get_formats():
     ydl_opts = {
         'quiet': True,
         'format': 'bestvideo+bestaudio/best',
-        'noplaylist': True
+        'noplaylist': True,
+        'http_chunk_size': 1048576,
+        'socket_timeout': 10,
+        'retries': 2
     }
 
     try:
@@ -46,6 +54,11 @@ def get_formats():
             if 'entries' in info:
                 info = info['entries'][0]
             formats = info.get('formats', [])
-            return jsonify(formats)  # ✅ returns array
+            print("Formats:", len(formats))
+            return jsonify(formats)
     except Exception as e:
-        return jsonify({ 'error': str(e) }), 500
+        print("Error:", e)
+        return jsonify({'error': str(e)}), 500
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8080)
