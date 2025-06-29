@@ -5,21 +5,22 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return 'YouTube Direct Link API Running!'
+    return 'YouTube Downloader API is running!'
 
 @app.route('/getvideo', methods=['GET'])
 def get_video():
     url = request.args.get('url')
     if not url:
-        return jsonify({'error': 'Missing URL'}), 400
+        return jsonify({'error': 'URL parameter missing'}), 400
 
     ydl_opts = {
         'quiet': True,
         'format': 'best[ext=mp4]/best',
         'noplaylist': True,
-        'http_chunk_size': 1048576,  # 1MB
         'socket_timeout': 10,
-        'retries': 2
+        'retries': 3,
+        'geo_bypass': True,
+        'nocheckcertificate': True,
     }
 
     try:
@@ -27,37 +28,17 @@ def get_video():
             info = ydl.extract_info(url, download=False)
             if 'entries' in info:
                 info = info['entries'][0]
-            print("Video URL:", info.get('url'))  # Railway logs
-            return jsonify({'url': info.get('url')})
+
+            direct_url = info.get('url')
+            print("Video URL:", direct_url)
+
+            if not direct_url:
+                return jsonify({'error': 'Could not extract direct video URL'}), 500
+
+            return jsonify({'url': direct_url})
+
     except Exception as e:
-        print("Error:", e)
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/getformats', methods=['GET'])
-def get_formats():
-    url = request.args.get('url')
-    if not url:
-        return jsonify({'error': 'Missing URL'}), 400
-
-    ydl_opts = {
-        'quiet': True,
-        'format': 'bestvideo+bestaudio/best',
-        'noplaylist': True,
-        'http_chunk_size': 1048576,
-        'socket_timeout': 10,
-        'retries': 2
-    }
-
-    try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-            if 'entries' in info:
-                info = info['entries'][0]
-            formats = info.get('formats', [])
-            print("Formats:", len(formats))
-            return jsonify(formats)
-    except Exception as e:
-        print("Error:", e)
+        print("Exception occurred:", str(e))
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
